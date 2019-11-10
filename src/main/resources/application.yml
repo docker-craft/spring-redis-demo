@@ -1,0 +1,9 @@
+server:
+  port: 8088
+
+spring:
+  redis:
+    cluster:
+      nodes: redis-master:6379, redis-slave:6379
+#    host: localhost
+#    port: 6380
