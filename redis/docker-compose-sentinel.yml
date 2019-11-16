@@ -1,0 +1,82 @@
+version: '3.6'
+
+services:
+  redis-master:
+    image: redis:5.0.5-alpine
+    hostname: redis-master
+#    command:
+#      - "redis-server"
+#      - "--cluster-enabled yes"
+#      - "--cluster-config-file nodes.conf"
+#      - "--cluster-node-timeout 5000"
+#      - "--appendonly yes"
+#    deploy:
+#      mode: global
+#      restart_policy:
+#        condition: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+  redis-slave:
+    image: redis:5.0.5-alpine
+    command: redis-server --slaveof redis-master 6379
+    hostname: redis-slave
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+  redis-sentinel-1:
+    image: docker.sense.io/redis-sentinel:5.0.5-alpine
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+#    links:
+#      - redis-master
+    networks:
+      - redis-net
+  redis-sentinel-2:
+    image: docker.sense.io/redis-sentinel:5.0.5-alpine
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+#    links:
+#      - redis-master
+    networks:
+      - redis-net
+  redis-sentinel-3:
+    image: docker.sense.io/redis-sentinel:5.0.5-alpine
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+#    links:
+#      - redis-master
+    networks:
+      - redis-net
+
+  redis-demo:
+    image: docker.sense.io/redis-demo:latest
+    depends_on:
+      - redis-master
+      - redis-slave
+    ports:
+      - 8088:8088
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    external: true
+

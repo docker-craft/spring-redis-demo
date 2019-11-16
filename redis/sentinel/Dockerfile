@@ -1,4 +1,4 @@
-FROM redis:5.0.3-alpine3.9
+FROM redis:5.0.5-alpine
 
 LABEL MAINTAINER="Chen Ming<ming.chen@sensetime.com>"
 

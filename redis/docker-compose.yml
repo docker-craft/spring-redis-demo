@@ -1,70 +1,50 @@
 version: '3.6'
-
 services:
-  redis-master:
-    image: redis:5.0.3-alpine3.9
-#    command:
-#      - "redis-server"
-#      - "--cluster-enabled yes"
-#      - "--cluster-config-file nodes.conf"
-#      - "--cluster-node-timeout 5000"
-#      - "--appendonly yes"
+  redis:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
     deploy:
-      mode: global
-      restart_policy:
-        condition: on-failure
-#    deploy:
-#      replicas: 1
-#      restart_policy:
-#        condition: on-failure
-    networks:
-      - redis-net
-  redis-slave:
-    image: redis:5.0.3-alpine3.9
-    command: redis-server --slaveof redis-master 6379
-    deploy:
-      replicas: 1
+      replicas: 6
+#      mode: global
       restart_policy:
         condition: on-failure
     networks:
       - redis-net
-
-  redis-sentinel-1:
-    image: redis-sentinel
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-#    links:
-#      - redis-master
-    networks:
-      - redis-net
-  redis-sentinel-2:
-    image: redis-sentinel
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-#    links:
-#      - redis-master
-    networks:
-      - redis-net
-  redis-sentinel-3:
-    image: redis-sentinel
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-#    links:
-#      - redis-master
+  redis-cluster:
+    image: docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      sh -c "
+        sleep 2
+        cluster_hosts=""
+        docker ps -q -f label=redis |
+        {
+          while read x; do
+            private_ip=$$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $$x)
+            echo $$cluster_hosts
+            cluster_hosts=\"$$cluster_hosts $$private_ip:6379\"
+          done
+          echo \"hi $$cluster_hosts\"
+          echo yes | docker run -i --rm --network redis-net --entrypoint redis-cli redis:5.0.3 --cluster create $$cluster_hosts --cluster-replicas 1
+        }
+      "
+    depends_on:
+      - redis
     networks:
       - redis-net
 
   redis-demo:
     image: docker.sense.io/redis-demo:latest
     depends_on:
-      - redis-master
-      - redis-slave
+      - redis-cluster
     ports:
       - 8088:8088
     deploy:
@@ -77,4 +57,3 @@ services:
 networks:
   redis-net:
     external: true
-

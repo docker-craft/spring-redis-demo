@@ -1,0 +1,34 @@
+version: '3.6'
+services:
+  redis-cluster:
+    environment:
+      INITIAL_PORT: 9000
+      MASTERS: 1
+      SLAVES_PER_MASTER: 2
+      REDIS_CLUSTER_IP: '0:0:0:0'
+    image: grokzen/redis-cluster:5.0.5
+    deploy:
+      replicas: 3
+    hostname: server
+    ports:
+      - '7000-7050:7000-7050'
+      - '5000-5010:5000-5010'
+      - '6379:6379'
+    networks:
+      - redis-net
+  redis-demo:
+    image: docker.sense.io/redis-demo:latest
+    depends_on:
+      - redis-cluster
+    ports:
+      - 8088:8088
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    external: true
