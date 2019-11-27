@@ -1,0 +1,353 @@
+version: "3.7"
+services:
+  mysql-master:
+    image: docker.sense.io/mariadb:10.3
+    volumes:
+      - "/ceph/mysql/master:/docker-entrypoint-initdb.d"
+      - "/ceph/mysql/sql:/data/sql"
+      - "/ceph/mysql/master/data:/var/lib/mysql"
+      - "/ceph/mysql/config/:/etc/mysql/conf.d"
+    environment:
+      #MYSQL_ALLOW_EMPTY_PASSWORD: 'Y'
+      MYSQL_ROOT_PASSWORD: senseBA2019*
+    command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3000
+    networks:
+      - ssid-net
+
+  mysql-slave1:
+    image: docker.sense.io/mariadb:10.3
+    depends_on:
+      - mysql-master
+    volumes:
+      - "/ceph/mysql/slave1:/docker-entrypoint-initdb.d"
+      - "/ceph/mysql/sql:/data/sql"
+      - "/ceph/mysql/slave1/data:/var/lib/mysql"
+      - "/ceph/mysql/config/:/etc/mysql/conf.d"
+    environment:
+      #MYSQL_ALLOW_EMPTY_PASSWORD: 'Y'
+      MYSQL_ROOT_PASSWORD: senseBA2019*
+    command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3001 --log-slave-updates
+    networks:
+      - ssid-net
+
+  mysql-slave2:
+    image: docker.sense.io/mariadb:10.3
+    depends_on:
+      - master-master
+    volumes:
+      - "/ceph/mysql/slave2:/docker-entrypoint-initdb.d"
+      - "/ceph/mysql/sql:/data/sql"
+      - "/ceph/mysql/slave2/data:/var/lib/mysql"
+      - "/ceph/mysql/config/:/etc/mysql/conf.d"
+    environment:
+      #MYSQL_ALLOW_EMPTY_PASSWORD: 'Y'
+      MYSQL_ROOT_PASSWORD: senseBA2019*
+    command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3002 --log-slave-updates
+    networks:
+      - ssid-net
+
+  mysql:
+    image: docker.sense.io/mariadb/maxscale:latest
+    depends_on:
+      - mysql-master
+      - mysql-slave1
+      - mysql-slave2
+    deploy:
+      replicas: 3
+    volumes:
+      - /ceph/mysql/maxscale:/etc/maxscale.cnf.d
+    ports:
+      - "3306:3306"  # readwrite port
+      - "4008:4008"  # readonly port
+    networks:
+      - ssid-net
+
+  zookeeper-1:
+    image: docker.sense.io/ssid-zookeeper:3.4.14
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    deploy:
+      replicas: 1
+    networks:
+      - ssid-net
+  zookeeper-2:
+    image: docker.sense.io/ssid-zookeeper:3.4.14
+    environment:
+      ZOOKEEPER_SERVER_ID: 2
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    deploy:
+      replicas: 1
+    networks:
+      - ssid-net
+  zookeeper-3:
+    image: docker.sense.io/ssid-zookeeper:3.4.14
+    environment:
+      ZOOKEEPER_SERVER_ID: 3
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    deploy:
+      replicas: 1
+    networks:
+      - ssid-net
+  kafka-1:
+    image: docker.sense.io/ssid-kafka:2.12
+    #    ports:
+    #      - 9092:9092
+    #      - 9094:9094
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka-1:9094,OUTSIDE://kafka-1:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_LISTENERS: INSIDE://:9094,OUTSIDE://:9092
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - "/etc/localtime:/etc/localtime"
+      - "/ceph/kafka/data1:/var/lib/kafka/data"
+    #      - "/ceph/kafka/config:/config"
+    #      #      - "/ceph/executive/script/kafka_entrypoint.sh:/tmp/kafka_entrypoint.sh"
+    networks:
+      - ssid-net
+  kafka-2:
+    image: docker.sense.io/ssid-kafka:2.12
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka-2:9094,OUTSIDE://kafka-2:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_LISTENERS: INSIDE://:9094,OUTSIDE://:9092
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - "/etc/localtime:/etc/localtime"
+      - "/ceph/kafka/data2:/var/lib/kafka/data"
+    #      - "/ceph/kafka/config:/config"
+    #      - "/ceph/executive/script/kafka_entrypoint.sh:/tmp/kafka_entrypoint.sh"
+    networks:
+      - ssid-net
+  kafka-3:
+    image: docker.sense.io/ssid-kafka:2.12
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka-3:9094,OUTSIDE://kafka-3:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_LISTENERS: INSIDE://:9094,OUTSIDE://:9092
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - "/etc/localtime:/etc/localtime"
+      - "/ceph/kafka/data3:/var/lib/kafka/data"
+    #      - "/ceph/kafka/config:/config"
+    #      - "/ceph/executive/script/kafka_entrypoint.sh:/tmp/kafka_entrypoint.sh"
+    networks:
+      - ssid-net
+  redis:
+    image: docker.sense.io/redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      #      - "--requirepass senseBA2019*"
+      - "--appendonly yes"
+    volumes:
+      - "/etc/localtime:/etc/localtime"
+    #      - "/ceph/redis/config:/var/lib/redis/conf"
+    labels:
+      - redis
+    deploy:
+      replicas: 6
+      restart_policy:
+        condition: on-failure
+    networks:
+      - ssid-net
+
+  redis-cluster:
+    image: docker.sense.io/docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      sh -c "
+        sleep 2
+        cluster_hosts=""
+        docker service ps -f name= base_redis -q |
+        {
+          while read x; do
+            private_ip=$$(docker inspect -f '{{range .NetworksAttachments}}{{range .Addresses}}{{.}}{{end}}{{end}}' $$x)
+            ipArray=($${private_ip//\// })
+            containerIp=$${ipArray[0]}
+            echo $$containerIp
+            cluster_hosts=\"$$cluster_hosts $$containerIp:6379\"
+          done
+          echo yes |docker run -i --rm --network ssid-net --entrypoint redis-cli docker.sense.io/redis:5.0.3 --cluster create $$cluster_hosts --cluster-replicas 1
+        }
+      "
+  depends_on:
+    - redis
+  networks:
+    - ssid-net
+
+eureka-1:
+  image: docker.sense.io/ssid-eureka:1.1.2.RTM
+  ports:
+    - "8761:8761"
+  depends_on:
+    - mysql
+  deploy:
+    replicas: 1
+    resources:
+      limits:
+        memory: 584m
+    restart_policy:
+      condition: on-failure
+    placement:
+      constraints:
+        - node.hostname == dev-3
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+    - "/ceph/executive:/executive"
+    - "/ceph/eureka/config1:/config"
+  environment:
+    TIMEZONE: Asia/Shanghai
+  networks:
+    - ssid-net
+
+eureka-2:
+  image: docker.sense.io/ssid-eureka:1.1.2.RTM
+  ports:
+    - "8762:8761"
+  depends_on:
+    - mysql
+  deploy:
+    replicas: 1
+    resources:
+      limits:
+        memory: 584m
+    restart_policy:
+      condition: on-failure
+    placement:
+      constraints:
+        - node.hostname == k8s-0
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+    - "/ceph/executive:/executive"
+    - "/ceph/eureka/config2:/config"
+  environment:
+    TIMEZONE: Asia/Shanghai
+  networks:
+    - ssid-net
+
+eureka-3:
+  image: docker.sense.io/ssid-eureka:1.1.2.RTM
+  ports:
+    - "8763:8761"
+  depends_on:
+    - mysql
+  deploy:
+    replicas: 1
+    resources:
+      limits:
+        memory: 584m
+    restart_policy:
+      condition: on-failure
+    placement:
+      constraints:
+        - node.hostname == swarm-0
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+    - "/ceph/executive:/executive"
+    - "/ceph/eureka/config3:/config"
+  environment:
+    TIMEZONE: Asia/Shanghai
+  networks:
+    - ssid-net
+
+nginx:
+  image: docker.sense.io/nginx:1.13.12
+  ports:
+    - "80:80"
+  depends_on:
+    - eureka
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: on-failure
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+    - "/ceph/executive:/usr/share/nginx"
+    - "/ceph/executive/galera-ss:/executive/galera-ss"
+    - "/ceph/images:/images"
+    - "/ceph/etc/springconfig:/springconfig"
+    - "/ceph/nginx/config/nginx.conf:/etc/nginx/nginx.conf"
+    - "/ceph/nginx/config/nginx.key:/etc/nginx/nginx.key"
+    - "/ceph/nginx/config/nginx.crt:/etc/nginx/nginx.crt"
+  environment:
+    TIMEZONE: Asia/Shanghai
+  networks:
+    - ssid-net
+
+
+gateway:
+  image: docker.sense.io/ssid-gateway:1.1.2.RTM
+  depends_on:
+    - eureka
+  deploy:
+    replicas: 3
+    resources:
+      limits:
+        memory: 584m
+    restart_policy:
+      condition: on-failure
+  volumes:
+    - "/etc/localtime:/etc/localtime"
+    - "/ceph/executive:/executive"
+    - "/ceph/gateway/config:/config"
+  environment:
+    TIMEZONE: Asia/Shanghai
+  networks:
+    - ssid-net
+
+
+networks:
+  ssid-net:
+    external: true
+secrets:
+  mysql_pw:
+    external: true
+  redis_pw:
+    external: true

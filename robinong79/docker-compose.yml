@@ -1,0 +1,101 @@
+version: "3.6"
+
+services:
+
+  mysql01:
+    image: robinong79/mysql_repl:5.7
+    ports:
+      - "3307:3306"
+    networks:
+      - mysqlcluster
+    environment:
+      - MYSQL_ROOT_PASSWORD=<INSERT_ROOT_PASSWORD>
+      - SERVER_ID=1
+      - BIND_ADDRESS=0.0.0.0
+    volumes:
+      - /var/dockerdata/mysqlcluster/mysql01/lib:/var/lib/mysql
+      - /var/dockerdata/mysqlcluster/mysql01/conf.d:/etc/mysql/conf.d
+      - /var/dockerdata/mysqlcluster/mysql01/initdb.d:/docker-entrypoint-initdb.d
+      - /var/dockerdata/mysqlcluster/mysql01/log:/var/log/mysql
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 60s
+      restart_policy:
+        condition: none
+        max_attempts: 5
+      placement:
+        constraints: [node.role == manager]
+
+    mysql02:
+      image: robinong79/mysql_repl:5.7
+      ports:
+        - "3308:3306"
+      networks:
+        - mysqlcluster
+      environment:
+        - MYSQL_ROOT_PASSWORD=<INSERT_ROOT_PASSWORD>
+        - SERVER_ID=2
+        - BIND_ADDRESS=0.0.0.0
+        - AUTO_INIT_MASTER_IP=mysql01
+      volumes:
+        - /var/dockerdata/mysqlcluster/mysql02/lib:/var/lib/mysql
+        - /var/dockerdata/mysqlcluster/mysql02/conf.d:/etc/mysql/conf.d
+        - /var/dockerdata/mysqlcluster/mysql02/log:/var/log/mysql
+        - /var/dockerdata/mysqlcluster/mysql02/initdb.d:/docker-entrypoint-initdb.d
+      deploy:
+        mode: replicated
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 60s
+        restart_policy:
+          condition: on-failure
+          max_attempts: 5
+        placement:
+          constraints: [node.role == worker]
+
+    wso2-mysqlfailover:
+      image: robinong79/mysqlfailover:1.6.4
+      networks:
+        - mysqlcluster
+      environment:
+        - MYSQL_ROOT_PASSWORD=<INSERT_ROOT_PASSWORD>
+        - MASTER=mysql01
+      deploy:
+        mode: replicated
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 60s
+        restart_policy:
+          condition: none
+          max_attempts: 5
+
+    wso2-mysqlrouter:
+      image: robinong79/mysqlrouter:2.0.4
+      ports:
+        - "3306:3306"
+      networks:
+        - mysqlcluster
+      environment:
+        - MLOGGER_LEVEL=ERROR
+        - MYSQLROUTER_BINDPORT=3306
+        - DESTINATIONS=mysql01:3306,mysql02:3306
+      volumes:
+        - /var/dockerdata/mysqlcluster/mysqlrouter/log:/var/log/mysqlrouter
+      deploy:
+        mode: replicated
+        replicas: 2
+        update_config:
+          parallelism: 1
+          delay: 60s
+        restart_policy:
+          condition: none
+          max_attempts: 5
+
+networks:
+  mysqlcluster:
+    external: true

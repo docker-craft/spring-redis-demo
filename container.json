@@ -1,0 +1,144 @@
+[
+  {
+    "ID": "95ld73zyhp2fig39y57fg14cn",
+    "Version": {
+      "Index": 58421
+    },
+    "CreatedAt": "2019-11-26T09:11:12.062214041Z",
+    "UpdatedAt": "2019-11-26T09:11:13.013488908Z",
+    "Labels": {},
+    "Spec": {
+      "ContainerSpec": {
+        "Image": "docker.sense.io/redis:5.0.3@sha256:4be7fdb131e76a6c6231e820c60b8b12938cf1ff3d437da4871b9b2440f4e385",
+        "Labels": {
+          "com.docker.stack.namespace": "base",
+          "redis": ""
+        },
+        "Args": [
+          "redis-server",
+          "--cluster-enabled yes",
+          "--cluster-config-file nodes.conf",
+          "--cluster-node-timeout 5000",
+          "--appendonly yes"
+        ],
+        "Privileges": {
+          "CredentialSpec": null,
+          "SELinuxContext": null
+        },
+        "Mounts": [
+          {
+            "Type": "bind",
+            "Source": "/etc/localtime",
+            "Target": "/etc/localtime"
+          }
+        ],
+        "Isolation": "default"
+      },
+      "Resources": {},
+      "RestartPolicy": {
+        "Condition": "on-failure",
+        "MaxAttempts": 0
+      },
+      "Placement": {
+        "Platforms": [
+          {
+            "Architecture": "amd64",
+            "OS": "linux"
+          },
+          {
+            "OS": "linux"
+          },
+          {
+            "OS": "linux"
+          },
+          {
+            "Architecture": "arm64",
+            "OS": "linux"
+          },
+          {
+            "Architecture": "386",
+            "OS": "linux"
+          },
+          {
+            "Architecture": "ppc64le",
+            "OS": "linux"
+          },
+          {
+            "Architecture": "s390x",
+            "OS": "linux"
+          }
+        ]
+      },
+      "Networks": [
+        {
+          "Target": "c3ezpdt9y092e3uprgc0jv9s9",
+          "Aliases": [
+            "redis"
+          ]
+        }
+      ],
+      "ForceUpdate": 0
+    },
+    "ServiceID": "eiwrhh5hjq1j3bdbgv3vwpy2h",
+    "Slot": 1,
+    "NodeID": "rioeicio0m8jlv8vygshnpxyq",
+    "Status": {
+      "Timestamp": "2019-11-26T09:11:12.933187195Z",
+      "State": "running",
+      "Message": "started",
+      "ContainerStatus": {
+        "ContainerID": "4c7b8f26bdf180283c4d1564638fb83bbc32f33237987268bea3d68594ede9eb",
+        "PID": 342785,
+        "ExitCode": 0
+      },
+      "PortStatus": {}
+    },
+    "DesiredState": "running",
+    "NetworksAttachments": [
+      {
+        "Network": {
+          "ID": "c3ezpdt9y092e3uprgc0jv9s9",
+          "Version": {
+            "Index": 12
+          },
+          "CreatedAt": "2019-11-26T03:30:00.446417911Z",
+          "UpdatedAt": "2019-11-26T03:30:00.447982242Z",
+          "Spec": {
+            "Name": "ssid-net",
+            "Labels": {},
+            "DriverConfiguration": {
+              "Name": "overlay"
+            },
+            "Attachable": true,
+            "IPAMOptions": {
+              "Driver": {
+                "Name": "default"
+              }
+            },
+            "Scope": "swarm"
+          },
+          "DriverState": {
+            "Name": "overlay",
+            "Options": {
+              "com.docker.network.driver.overlay.vxlanid_list": "4097"
+            }
+          },
+          "IPAMOptions": {
+            "Driver": {
+              "Name": "default"
+            },
+            "Configs": [
+              {
+                "Subnet": "10.0.0.0/24",
+                "Gateway": "10.0.0.1"
+              }
+            ]
+          }
+        },
+        "Addresses": [
+          "10.0.0.244/24"
+        ]
+      }
+    ]
+  }
+]
