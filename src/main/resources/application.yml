@@ -17,7 +17,12 @@ spring:
 
     cluster:
       nodes:
-        - redis:6379
+        - redis-1:6379
+        - redis-2:6379
+        - redis-3:6379
+        - redis-4:6379
+        - redis-5:6379
+        - redis-6:6379
       max-redirects: 3
 #    host: redis-cluster
 #    port: 6379

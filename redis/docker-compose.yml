@@ -1,6 +1,6 @@
 version: '3.6'
 services:
-  redis:
+  redis-1:
     image: redis:5.0.3
     command:
       - "redis-server"
@@ -11,12 +11,105 @@ services:
     labels:
       - redis
     deploy:
-      replicas: 6
+      replicas: 1
 #      mode: global
       restart_policy:
         condition: on-failure
     networks:
       - redis-net
+
+  redis-2:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
+    deploy:
+      replicas: 1
+      #      mode: global
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+  redis-3:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
+    deploy:
+      replicas: 1
+      #      mode: global
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+  redis-4:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
+    deploy:
+      replicas: 1
+      #      mode: global
+
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+  redis-5:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
+    deploy:
+      replicas: 1
+      #      mode: global
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
+  redis-6:
+    image: redis:5.0.3
+    command:
+      - "redis-server"
+      - "--cluster-enabled yes"
+      - "--cluster-config-file nodes.conf"
+      - "--protected-mode no"
+      - "--cluster-node-timeout 5000"
+      - "--appendonly yes"
+    labels:
+      - redis
+    deploy:
+      replicas: 1
+      #      mode: global
+      restart_policy:
+        condition: on-failure
+    networks:
+      - redis-net
+
   redis-cluster:
     image: docker.sense.io/centos:docker
     volumes:
